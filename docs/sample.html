@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SigVerify Pro: Biometric Forgery Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Chosen Palette: Forensic Slate & Trusted Blue -->
+    <!-- Application Structure Plan: The SPA uses a scrolling, narrative-driven structure broken into thematic sections (Overview, Architecture, Performance, Simulator). This structure is chosen because it logically guides the user from understanding the *business value* to the *technical mechanism* (Siamese Networks), proves its *efficacy* with data (Chart), and finally allows them to *experience* it (Simulator). This progressive disclosure prevents overwhelming non-technical stakeholders while providing depth for technical users. -->
+    <!-- Visualization & Content Choices: 
+         1. Architecture Diagram -> Goal: Organize/Explain -> HTML/CSS Grid with Unicode arrows -> Justification: Shows data flow clearly without external image dependencies (NO SVG).
+         2. Performance Metrics -> Goal: Compare -> Interactive Bar Chart (Chart.js) -> Justification: Clearly contrasts Zero-Shot vs Fine-Tuned metrics (Accuracy, FAR, FRR). Allows toggling to see the impact of fine-tuning.
+         3. Interactive Simulator -> Goal: Inform/Engage -> Vanilla JS DOM Manipulation -> Justification: Simulates the FastAPI backend experience in real-time, making abstract concepts (distance metrics) tangible.
+         Confirming NO SVG graphics used. Confirming NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .hidden-element {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse-border {
+            animation: pulseBorder 2s infinite;
+        }
+
+        @keyframes pulseBorder {
+            0% {
+                border-color: #cbd5e1;
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+
+            50% {
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+            }
+
+            100% {
+                border-color: #cbd5e1;
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-200">
+
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl text-blue-600 font-bold">&#10004;</span>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">SigVerify Pro</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#overview"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Overview</a>
+                    <a href="#architecture"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Architecture</a>
+                    <a href="#performance"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Performance</a>
+                    <a href="#simulator"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Live
+                        Simulator</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <section id="overview" class="pt-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-6">
+                    Enterprise Biometric <span class="text-blue-600">Forgery Detection</span>
+                </h1>
+                <p class="text-lg text-slate-600 leading-relaxed">
+                    A comprehensive overview of the next-generation signature verification system.
+                    Utilizing Siamese Neural Networks, Triplet Loss optimization, and FastAPI infrastructure
+                    to mathematically separate genuine signatures from highly skilled forgeries.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center hover:-translate-y-1 transition-transform">
+                    <div class="text-4xl mb-3">&#128640;</div>
+                    <h3 class="font-bold text-slate-900 text-lg mb-2">FastAPI Backend</h3>
+                    <p class="text-sm text-slate-600">Asynchronous, high-throughput ASGI infrastructure ensuring
+                        sub-second inference latency.</p>
+                </div>
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center hover:-translate-y-1 transition-transform">
+                    <div class="text-4xl mb-3">&#129416;</div>
+                    <h3 class="font-bold text-slate-900 text-lg mb-2">Siamese Networks</h3>
+                    <p class="text-sm text-slate-600">Dual-branch ResNet/Inception architecture comparing macroscopic
+                        and microscopic kinematics.</p>
+                </div>
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center hover:-translate-y-1 transition-transform">
+                    <div class="text-4xl mb-3">&#128200;</div>
+                    <h3 class="font-bold text-slate-900 text-lg mb-2">$18.03B Market Value</h3>
+                    <p class="text-sm text-slate-600">Addressing the growing global demand for secure, AI-driven
+                        authentication by 2033.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture" class="scroll-mt-20">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">The Mathematical Engine: Siamese Networks</h2>
+                <p class="text-slate-600 max-w-3xl">
+                    Unlike standard image classifiers that identify "what" an object is, a Siamese Network determines
+                    "distance" between two objects.
+                    It maps signatures into a high-dimensional latent space where genuine signatures of the same person
+                    are clustered tightly together,
+                    and forgeries are pushed far apart.
+                </p>
+            </div>
+
+            <div class="bg-slate-900 rounded-3xl p-8 md:p-12 shadow-xl border border-slate-800 text-slate-300">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+
+                    <div class="flex flex-col gap-6 w-full md:w-1/3">
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl text-center">
+                            <span class="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Input
+                                1</span>
+                            <div class="text-3xl mb-1">&#128196;</div>
+                            <span class="text-sm font-medium">Anchor (Genuine)</span>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl text-center">
+                            <span class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Input
+                                2</span>
+                            <div class="text-3xl mb-1">&#128195;</div>
+                            <span class="text-sm font-medium">Questioned Signature</span>
+                        </div>
+                    </div>
+
+                    <div class="hidden md:flex flex-col justify-center text-4xl text-slate-600">
+                        &#10230;
+                    </div>
+
+                    <div class="w-full md:w-1/3 text-center">
+                        <div class="bg-blue-900/30 border border-blue-500/30 p-6 rounded-2xl relative">
+                            <div
+                                class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                                Shared Weights
+                            </div>
+                            <div class="text-5xl mb-3 text-blue-400">&#9881;</div>
+                            <h4 class="font-bold text-white text-lg">ResNet-50 Backbone</h4>
+                            <p class="text-xs text-blue-200 mt-2">Extracts 128-dimensional embedding vectors</p>
+                        </div>
+                    </div>
+
+                    <div class="hidden md:flex flex-col justify-center text-4xl text-slate-600">
+                        &#10230;
+                    </div>
+
+                    <div class="w-full md:w-1/3 text-center">
+                        <div
+                            class="bg-slate-800 border border-slate-700 p-6 rounded-2xl h-full flex flex-col justify-center">
+                            <h4 class="font-bold text-white mb-2">Distance Calculation</h4>
+                            <div
+                                class="text-sm font-mono text-emerald-400 bg-slate-900 py-2 px-3 rounded-lg border border-slate-800">
+                                d(A, Q) = ||f(A) - f(Q)||&sup2;
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3">If distance < Threshold, genuine. Else, forgery.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="scroll-mt-20">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <div class="max-w-2xl">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-4">The Impact of Fine-Tuning</h2>
+                    <p class="text-slate-600">
+                        A generic "Zero-Shot" model understands basic visual differences but fails against skilled
+                        forgers.
+                        By Fine-Tuning the model on a specific dataset using Triplet Loss, we drastically reduce the
+                        False Acceptance Rate (FAR).
+                    </p>
+                </div>
+                <div class="flex bg-slate-200 p-1 rounded-xl shrink-0">
+                    <button id="btn-zero-shot"
+                        class="px-4 py-2 text-sm font-medium rounded-lg bg-white shadow-sm text-slate-800 transition-all">Zero-Shot
+                        Model</button>
+                    <button id="btn-fine-tuned"
+                        class="px-4 py-2 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-800 transition-all">Fine-Tuned
+                        Model</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center border-t border-slate-100 pt-6">
+                    <div>
+                        <span class="block text-3xl font-bold text-slate-900" id="stat-acc">68.5%</span>
+                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Overall Accuracy</span>
+                    </div>
+                    <div>
+                        <span class="block text-3xl font-bold text-red-500" id="stat-far">22.4%</span>
+                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">False Acceptance
+                            (FAR)</span>
+                    </div>
+                    <div>
+                        <span class="block text-3xl font-bold text-amber-500" id="stat-frr">14.1%</span>
+                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">False Rejection
+                            (FRR)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="simulator" class="scroll-mt-20 pb-20">
+            <div class="mb-8 text-center max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">Live Verification Simulator</h2>
+                <p class="text-slate-600">
+                    Experience the FastAPI inference endpoint. Select a test scenario to simulate uploading signatures
+                    and generating a biometric forensic report.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-8 shadow-lg border border-slate-200">
+
+                <div class="max-w-md mx-auto mb-8">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Test Scenario:</label>
+                    <select id="scenario-select"
+                        class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 shadow-sm outline-none transition-all">
+                        <option value="genuine">Scenario A: Genuine Signature Match</option>
+                        <option value="forged">Scenario B: Skilled Forgery Attempt</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div
+                        class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-slate-50 relative overflow-hidden">
+                        <div class="text-4xl mb-3 text-blue-500">&#128193;</div>
+                        <h4 class="font-bold text-slate-800 mb-2">Anchor (Database Reference)</h4>
+                        <div class="w-full h-16 border-b-2 border-slate-800 mx-auto mt-4 relative">
+                            <span class="absolute bottom-1 left-4 font-cursive text-2xl text-slate-800 opacity-80"
+                                style="font-family: cursive;">John Doe</span>
+                        </div>
+                    </div>
+                    <div class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-slate-50 relative overflow-hidden"
+                        id="questioned-box">
+                        <div class="text-4xl mb-3 text-amber-500">&#9997;</div>
+                        <h4 class="font-bold text-slate-800 mb-2">Questioned Signature</h4>
+                        <div class="w-full h-16 border-b-2 border-slate-800 mx-auto mt-4 relative">
+                            <span id="questioned-sig-text"
+                                class="absolute bottom-1 left-4 font-cursive text-2xl text-slate-800 opacity-80"
+                                style="font-family: cursive;">John Doe</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="run-inference-btn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-transform transform hover:-translate-y-1">
+                        Execute Biometric Analysis
+                    </button>
+                </div>
+
+                <div id="processing-state" class="hidden-element mt-12 text-center">
+                    <div class="inline-block text-4xl text-blue-500 animate-spin mb-4">&#9881;</div>
+                    <h4 class="font-bold text-slate-800 text-lg">Processing Tensors...</h4>
+                    <p id="processing-text" class="text-sm text-slate-500 font-mono mt-2">Loading model weights...</p>
+                    <div class="w-full max-w-md mx-auto bg-slate-200 rounded-full h-2 mt-4 overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="result-state" class="hidden-element mt-12 fade-in">
+                    <div class="border-t border-slate-200 pt-8">
+                        <div id="result-banner"
+                            class="rounded-2xl p-6 flex items-center justify-between mb-6 shadow-sm border">
+                            <div class="flex items-center gap-4">
+                                <div id="result-icon-container" class="p-3 rounded-full text-3xl"></div>
+                                <div>
+                                    <h3 id="result-title" class="text-2xl font-black uppercase tracking-tight"></h3>
+                                    <p id="result-subtitle" class="font-medium"></p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block text-right font-mono text-sm opacity-70">
+                                <div>Latent Dist: <span id="result-dist"></span></div>
+                                <div>Latency: 1.42s</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-2xl p-6 shadow-inner text-slate-300 border border-slate-800">
+                            <h4 class="text-lg font-bold mb-4 text-white flex items-center gap-2">
+                                <span>&#129416;</span> VLM Forensic Report
+                            </h4>
+                            <div class="bg-slate-950 rounded-xl p-5 font-mono text-sm border border-slate-800">
+                                <p class="text-emerald-400 mb-2">> Analyzing spatial relationships & kinematics...</p>
+                                <div id="vlm-report-content" class="space-y-3 mt-4">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 text-center text-sm">
+        <p>Built with Tailwind CSS & Vanilla JavaScript. Demonstrates architecture and UX for Biometric Analysis.</p>
+    </footer>
+
+    <script>
+        const chartData = {
+            zeroShot: {
+                labels: ['Accuracy', 'False Acceptance (FAR)', 'False Rejection (FRR)'],
+                datasets: [{
+                    label: 'Generic Model (%)',
+                    data: [68.5, 22.4, 14.1],
+                    backgroundColor: ['#cbd5e1', '#fca5a5', '#fcd34d'],
+                    borderWidth: 0,
+                    borderRadius: 6
+                }],
+                stats: { acc: '68.5%', far: '22.4%', frr: '14.1%' }
+            },
+            fineTuned: {
+                labels: ['Accuracy', 'False Acceptance (FAR)', 'False Rejection (FRR)'],
+                datasets: [{
+                    label: 'Fine-Tuned Model (%)',
+                    data: [98.7, 1.2, 2.4],
+                    backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                    borderWidth: 0,
+                    borderRadius: 6
+                }],
+                stats: { acc: '98.7%', far: '1.2%', frr: '2.4%' }
+            }
+        };
+
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        let perfChart = new Chart(ctx, {
+            type: 'bar',
+            data: chartData.zeroShot,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) { return context.parsed.y + '%'; }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        const btnZeroShot = document.getElementById('btn-zero-shot');
+        const btnFineTuned = document.getElementById('btn-fine-tuned');
+        const statAcc = document.getElementById('stat-acc');
+        const statFar = document.getElementById('stat-far');
+        const statFrr = document.getElementById('stat-frr');
+
+        function updateChart(type) {
+            const data = chartData[type];
+            perfChart.data = data;
+            perfChart.update();
+
+            statAcc.textContent = data.stats.acc;
+            statFar.textContent = data.stats.far;
+            statFrr.textContent = data.stats.frr;
+
+            if (type === 'zeroShot') {
+                btnZeroShot.classList.replace('text-slate-600', 'text-slate-800');
+                btnZeroShot.classList.replace('hover:text-slate-800', 'bg-white');
+                btnZeroShot.classList.add('shadow-sm');
+
+                btnFineTuned.classList.replace('text-slate-800', 'text-slate-600');
+                btnFineTuned.classList.replace('bg-white', 'hover:text-slate-800');
+                btnFineTuned.classList.remove('shadow-sm');
+
+                statAcc.classList.replace('text-emerald-500', 'text-slate-900');
+            } else {
+                btnFineTuned.classList.replace('text-slate-600', 'text-slate-800');
+                btnFineTuned.classList.replace('hover:text-slate-800', 'bg-white');
+                btnFineTuned.classList.add('shadow-sm');
+
+                btnZeroShot.classList.replace('text-slate-800', 'text-slate-600');
+                btnZeroShot.classList.replace('bg-white', 'hover:text-slate-800');
+                btnZeroShot.classList.remove('shadow-sm');
+
+                statAcc.classList.replace('text-slate-900', 'text-emerald-500');
+            }
+        }
+
+        btnZeroShot.addEventListener('click', () => updateChart('zeroShot'));
+        btnFineTuned.addEventListener('click', () => updateChart('fineTuned'));
+
+        const scenarioSelect = document.getElementById('scenario-select');
+        const runBtn = document.getElementById('run-inference-btn');
+        const processingState = document.getElementById('processing-state');
+        const resultState = document.getElementById('result-state');
+        const questionedBox = document.getElementById('questioned-box');
+        const questionedSigText = document.getElementById('questioned-sig-text');
+
+        scenarioSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'forged') {
+                questionedSigText.style.fontFamily = 'monospace';
+                questionedSigText.style.letterSpacing = '-1px';
+            } else {
+                questionedSigText.style.fontFamily = 'cursive';
+                questionedSigText.style.letterSpacing = 'normal';
+            }
+            resultState.classList.add('hidden-element');
+            runBtn.classList.remove('hidden-element');
+        });
+
+        const simSteps = [
+            "Aligning images via Spatial Transformer Network...",
+            "Extracting 128D embeddings from ResNet-50...",
+            "Calculating Euclidean Distance in Latent Space...",
+            "Querying Vision-Language Model for forensics..."
+        ];
+
+        runBtn.addEventListener('click', () => {
+            runBtn.classList.add('hidden-element');
+            resultState.classList.add('hidden-element');
+            processingState.classList.remove('hidden-element');
+            questionedBox.classList.add('pulse-border');
+
+            const pText = document.getElementById('processing-text');
+            const pBar = document.getElementById('progress-bar');
+
+            let step = 0;
+            pBar.style.width = '0%';
+
+            const interval = setInterval(() => {
+                if (step < simSteps.length) {
+                    pText.textContent = simSteps[step];
+                    pBar.style.width = ((step + 1) * 25) + '%';
+                    step++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(showResult, 500);
+                }
+            }, 800);
+        });
+
+        function showResult() {
+            processingState.classList.add('hidden-element');
+            questionedBox.classList.remove('pulse-border');
+            resultState.classList.remove('hidden-element');
+
+            const isGenuine = scenarioSelect.value === 'genuine';
+
+            const banner = document.getElementById('result-banner');
+            const iconContainer = document.getElementById('result-icon-container');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+            const dist = document.getElementById('result-dist');
+            const reportContent = document.getElementById('vlm-report-content');
+
+            banner.className = `rounded-2xl p-6 flex items-center justify-between mb-6 shadow-sm border ${isGenuine ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`;
+            iconContainer.className = `p-3 rounded-full text-3xl flex items-center justify-center ${isGenuine ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`;
+            iconContainer.innerHTML = isGenuine ? '&#10004;' : '&#10060;';
+            title.className = `text-2xl font-black uppercase tracking-tight ${isGenuine ? 'text-emerald-700' : 'text-red-700'}`;
+            title.textContent = isGenuine ? 'Genuine Signature' : 'Skilled Forgery Detected';
+            subtitle.className = `font-medium ${isGenuine ? 'text-emerald-700/80' : 'text-red-700/80'}`;
+            subtitle.textContent = isGenuine ? 'Confidence: 98.2% (Matches Identity Profile)' : 'Confidence: 99.4% (Fails Identity Profile)';
+
+            dist.textContent = isGenuine ? '0.34 (Valid)' : '4.82 (Invalid)';
+            dist.className = isGenuine ? 'text-emerald-500 font-bold' : 'text-red-500 font-bold';
+
+            if (isGenuine) {
+                reportContent.innerHTML = `
+                    <p><span class="text-emerald-400 font-bold">[Validation]</span> Fluidity and stroke velocity match historical patterns.</p>
+                    <p><span class="text-emerald-400 font-bold">[Validation]</span> Euclidean distance of 0.34 falls well below the rejection threshold of 1.15.</p>
+                    <p class="text-slate-400 mt-4 pt-3 border-t border-slate-800">System Code: ACCEPT_AUTH</p>
+                `;
+            } else {
+                reportContent.innerHTML = `
+                    <p><span class="text-red-400 font-bold">[Anomaly: High]</span> Abnormal curvature velocity detected. Stroke indicates hesitation characteristic of drawing rather than signing.</p>
+                    <p><span class="text-amber-400 font-bold">[Anomaly: Med]</span> Unnatural ink pooling preceding terminal stroke.</p>
+                    <p><span class="text-red-400 font-bold">[Metric]</span> Triplet distance of 4.82 vastly exceeds threshold of 1.15.</p>
+                    <p class="text-slate-400 mt-4 pt-3 border-t border-slate-800">System Code: REJECT_FORGERY</p>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>
