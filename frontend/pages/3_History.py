@@ -15,6 +15,9 @@ if not user_id:
     st.warning("⚠️ Please set your User ID on the Home page first.")
     st.stop()
 
+user_email = st.session_state.get("user_email") or f"User {user_id}"
+st.info(f"Viewing history for: **{user_email}**")
+
 limit  = st.slider("Records to load", min_value=10, max_value=200, value=50, step=10)
 offset = st.number_input("Offset", min_value=0, value=0, step=10)
 

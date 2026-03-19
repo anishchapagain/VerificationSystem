@@ -25,6 +25,9 @@ if "api_base_url" not in st.session_state:
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
 if "token" not in st.session_state:
     st.session_state.token = None
 
@@ -57,7 +60,29 @@ with st.sidebar:
     )
     if st.button("Set User ID"):
         st.session_state.user_id = int(user_id_input)
-        st.success(f"User ID set to {st.session_state.user_id}")
+        
+        # Fetch user profile for email/name
+        import httpx
+        try:
+            with st.spinner("Fetching user profile..."):
+                r = httpx.get(
+                    f"{st.session_state.api_base_url}/api/users/me/{st.session_state.user_id}",
+                    timeout=5
+                )
+                if r.status_code == 200:
+                    user_data = r.json()
+                    st.session_state.user_email = user_data.get("email")
+                    st.success(f"User set to: **{st.session_state.user_email}**")
+                else:
+                    st.session_state.user_email = f"User {st.session_state.user_id}"
+                    st.warning(f"User ID {st.session_state.user_id} not found in database.")
+        except Exception as e:
+            st.session_state.user_email = f"User {st.session_state.user_id}"
+            st.error(f"Cannot reach API: {e}")
+
+    if st.session_state.user_email:
+        st.divider()
+        st.write(f"Logged in as: **{st.session_state.user_email}**")
 
     st.divider()
     st.caption(f"API: `{st.session_state.api_base_url}`")

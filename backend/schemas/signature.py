@@ -101,7 +101,7 @@ class VerifyRequest(BaseModel):
 class ScoreBreakdown(BaseModel):
     """Per-reference similarity scores returned in the verification response."""
     signature_id: int
-    score: float = Field(..., ge=0.0, le=1.0)
+    score: float = Field(..., ge=-1.0, le=1.0)
 
 
 class VerifyResponse(BaseModel):
@@ -109,11 +109,12 @@ class VerifyResponse(BaseModel):
     user_id: int
     verdict: bool = Field(..., description="True = MATCH, False = NO MATCH")
     verdict_label: str = Field(..., description="Human-readable: 'MATCH' or 'NO MATCH'")
-    score: float = Field(..., ge=0.0, le=1.0, description="Best cosine similarity score")
+    score: float = Field(..., ge=-1.0, le=1.0, description="Best cosine similarity score")
     confidence: str = Field(..., description="Very High | High | Medium | Low | Very Low")
     threshold_used: float
     best_match_signature_id: Optional[int]
     source: str = Field(..., description="'image' or 'video'")
+    match_strategy: str = Field(..., description="highest | lowest | average")
     score_breakdown: List[ScoreBreakdown]
     match_log_id: int
     processed_at: datetime
@@ -147,6 +148,7 @@ class VerifyResponse(BaseModel):
             threshold_used=match_result.threshold_used,
             best_match_signature_id=match_result.best_sig_id,
             source=source,
+            match_strategy=match_result.match_strategy,
             score_breakdown=[
                 ScoreBreakdown(signature_id=sig_id, score=round(score, 6))
                 for sig_id, score in match_result.all_scores.items()

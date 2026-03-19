@@ -15,6 +15,7 @@ from typing import AsyncGenerator
 
 import asyncpg
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -205,10 +206,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
+        except SQLAlchemyError as exc:
+            await session.rollback()
+            log.error(f"DB session rolled back due to database error | {exc}")
+            raise DatabaseError("session", detail=str(exc)) from exc
         except Exception as exc:
             await session.rollback()
-            log.error(f"DB session rolled back | {exc}")
-            raise DatabaseError("session", detail=str(exc)) from exc
+            log.error(f"DB session rolled back due to application error | {exc}")
+            raise  # Re-raise application errors (e.g. ValidationError) as-is
         finally:
             await session.close()
 

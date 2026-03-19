@@ -241,6 +241,8 @@ async def register_signature(
 async def verify_signature(
     file: UploadFile = File(..., description="Signature image or video file."),
     user_id: int = Form(..., gt=0),
+    threshold: Optional[float] = Form(None, ge=0.0, le=1.0),
+    match_strategy: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
     preprocessor: SignaturePreprocessor = Depends(get_preprocessor),
@@ -289,10 +291,20 @@ async def verify_signature(
         references = await SignatureCRUD.get_embeddings_by_user(db, user_id)
 
         # 5. Match
+        target_threshold = threshold if threshold is not None else settings.MATCH_THRESHOLD
+        target_strategy = match_strategy if match_strategy is not None else settings.DEFAULT_MATCH_STRATEGY
+        
+        # Update matcher threshold for this request
+        matcher.threshold = target_threshold
+
         if is_video and len(embeddings) > 1:
-            match_result = matcher.ensemble_match(embeddings, references, user_id)
+            match_result = matcher.ensemble_match(
+                embeddings, references, user_id, strategy=target_strategy
+            )
         else:
-            match_result = matcher.match(embeddings[0], references, user_id)
+            match_result = matcher.match(
+                embeddings[0], references, user_id, strategy=target_strategy
+            )
 
         # 6. Write audit log
         log_entry = await MatchLogCRUD.create(

@@ -11,11 +11,37 @@ st.markdown("Upload a query signature (image or video) to verify it against stor
 api     = st.session_state.get("api_base_url", "http://localhost:8000")
 user_id = st.session_state.get("user_id")
 
-if not user_id:
-    st.warning("⚠️ Please set your User ID on the Home page first.")
-    st.stop()
+user_email = st.session_state.get("user_email") or f"User {user_id}"
+st.info(f"Verifying against references for: **{user_email}**")
 
-st.info(f"Verifying against references for **User ID: {user_id}**")
+# ── Sidebar Settings ──────────────────────────────────────────────────────────
+with st.sidebar:
+    st.header("⚙️ Verification Settings")
+    st.markdown("Customize how the system decides a match.")
+    
+    threshold_val = st.slider(
+        "Similarity Threshold",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.85,
+        step=0.01,
+        help="Higher = Strict, Lower = Permissive."
+    )
+    
+    strategy_label = st.selectbox(
+        "Match Strategy",
+        options=["Highest Similarity", "Lowest Similarity", "Average Similarity"],
+        index=0,
+        help="How to aggregate multiple reference signatures."
+    )
+    
+    # Map label to backend value
+    strategy_map = {
+        "Highest Similarity": "highest",
+        "Lowest Similarity": "lowest",
+        "Average Similarity": "average"
+    }
+    match_strategy = strategy_map[strategy_label]
 
 with st.form("verify_form"):
     uploaded = st.file_uploader(
@@ -31,8 +57,14 @@ if submitted:
     else:
         with st.spinner("Verifying signature..."):
             try:
-                files = {"file": (uploaded.name, uploaded.read(), uploaded.type)}
-                data  = {"user_id": str(user_id)}
+                # Read file once
+                file_bytes = uploaded.read()
+                files = {"file": (uploaded.name, file_bytes, uploaded.type)}
+                data  = {
+                    "user_id": str(user_id),
+                    "threshold": str(threshold_val),
+                    "match_strategy": match_strategy
+                }
                 resp  = httpx.post(
                     f"{api}/api/signatures/verify",
                     files=files, data=data, timeout=60
@@ -47,10 +79,11 @@ if submitted:
                     else:
                         st.error(f"## ❌ NO MATCH — {r['confidence']} Confidence")
 
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4 = st.columns(4)
                     col1.metric("Score", f"{r['score']:.4f}")
                     col2.metric("Threshold", f"{r['threshold_used']}")
-                    col3.metric("Source", r["source"].capitalize())
+                    col3.metric("Strategy", r["match_strategy"].capitalize())
+                    col4.metric("Source", r["source"].capitalize())
 
                     st.divider()
                     st.subheader("Score Breakdown")

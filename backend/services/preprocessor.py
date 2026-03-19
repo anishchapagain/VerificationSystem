@@ -106,6 +106,11 @@ class SignaturePreprocessor:
         self.morph_kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (morph_kernel_size, morph_kernel_size)
         )
+        self.use_binarization = settings.USE_BINARIZATION
+        self.use_cropping = settings.USE_CROPPING
+        self.use_clahe = settings.USE_CLAHE
+        self.use_aspect_ratio_resize = settings.USE_ASPECT_RATIO_RESIZE
+        self.clahe_clip_limit = settings.CLAHE_CLIP_LIMIT
         self.debug = debug
         log.debug(
             f"SignaturePreprocessor initialized | "
@@ -145,23 +150,45 @@ class SignaturePreprocessor:
             if self.debug:
                 steps.append(("grayscale", gray.copy()))
 
-            blurred = self._denoise(gray)
+            # Optimized Step: Contrast Normalization
+            if self.use_clahe:
+                processed = self._apply_clahe(gray)
+                if self.debug:
+                    steps.append(("clahe", processed.copy()))
+            else:
+                processed = gray
+
+            blurred = self._denoise(processed)
             if self.debug:
                 steps.append(("denoised", blurred.copy()))
 
-            binary = self._binarize(blurred)
-            if self.debug:
-                steps.append(("binarized", binary.copy()))
+            if self.use_binarization:
+                binary = self._binarize(blurred)
+                if self.debug:
+                    steps.append(("binarized", binary.copy()))
 
-            cleaned = self._morphological_cleanup(binary)
-            if self.debug:
-                steps.append(("morphology", cleaned.copy()))
+                cleaned = self._morphological_cleanup(binary)
+                if self.debug:
+                    steps.append(("morphology", cleaned.copy()))
+                
+                input_for_crop = cleaned
+            else:
+                input_for_crop = blurred
 
-            cropped = self._crop_to_signature(cleaned)
-            if self.debug:
-                steps.append(("cropped", cropped.copy()))
+            if self.use_cropping:
+                cropped = self._crop_to_signature(input_for_crop)
+                if self.debug:
+                    steps.append(("cropped", cropped.copy()))
+                input_for_resize = cropped
+            else:
+                input_for_resize = input_for_crop
 
-            resized = self._resize(cropped)
+            # Optimized Step: Aspect-Ratio Preserving Resize
+            if self.use_aspect_ratio_resize:
+                resized = self._resize_with_aspect_ratio(input_for_resize)
+            else:
+                resized = self._resize(input_for_resize)
+                
             if self.debug:
                 steps.append(("resized", resized.copy()))
 
@@ -295,7 +322,8 @@ class SignaturePreprocessor:
             x, y, w, h = cv2.boundingRect(np.vstack(contours))
 
             # Add padding (clamped to image boundaries)
-            pad = 5
+            # Tighter padding (2px) for aggressive logic
+            pad = 2
             x1 = max(x - pad, 0)
             y1 = max(y - pad, 0)
             x2 = min(x + w + pad, binary.shape[1])
@@ -324,3 +352,46 @@ class SignaturePreprocessor:
             return image.astype(np.float32) / 255.0
         except Exception as exc:
             raise ImagePreprocessingError("normalize", detail=str(exc)) from exc
+
+    def _apply_clahe(self, gray: np.ndarray) -> np.ndarray:
+        """Apply Contrast Limited Adaptive Histogram Equalization."""
+        try:
+            clahe = cv2.createCLAHE(clipLimit=self.clahe_clip_limit, tileGridSize=(8, 8))
+            return clahe.apply(gray)
+        except Exception as exc:
+            raise ImagePreprocessingError("clahe", detail=str(exc)) from exc
+
+    def _resize_with_aspect_ratio(self, image: np.ndarray) -> np.ndarray:
+        """Resize while preserving aspect ratio by adding zero-padding."""
+        try:
+            h, w = image.shape[:2]
+            target_w, target_h = self.target_width, self.target_height
+            
+            # Calculate scaling factor
+            aspect = w / h
+            target_aspect = target_w / target_h
+            
+            if aspect > target_aspect:
+                # Width is the limiting factor
+                new_w = target_w
+                new_h = int(new_w / aspect)
+            else:
+                # Height is the limiting factor
+                new_h = target_h
+                new_w = int(new_h * aspect)
+                
+            resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            
+            # Pad to target size (centering)
+            top = (target_h - new_h) // 2
+            bottom = target_h - new_h - top
+            left = (target_w - new_w) // 2
+            right = target_w - new_w - left
+            
+            padded = cv2.copyMakeBorder(
+                resized, top, bottom, left, right, 
+                cv2.BORDER_CONSTANT, value=0
+            )
+            return padded
+        except Exception as exc:
+            raise ImagePreprocessingError("aspect_resize", detail=str(exc)) from exc

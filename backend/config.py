@@ -39,6 +39,9 @@ class Settings(BaseSettings):
         TOKEN_EXPIRE_MIN: JWT token lifetime in minutes.
         VIDEO_STRIDE    : Process every Nth frame from a video input.
         VIDEO_TOP_FRAMES: Number of sharpest frames used for ensemble voting.
+        USE_CLAHE       : Enable Contrast Limited Adaptive Histogram Equalization.
+        USE_ASPECT_RATIO_RESIZE: Preserve aspect ratio and pad during resize.
+        CLAHE_CLIP_LIMIT: Clipping limit for CLAHE contrast enhancement.
     """
 
     model_config = SettingsConfigDict(
@@ -67,6 +70,7 @@ class Settings(BaseSettings):
     )
     EMBEDDING_DIM: int = Field(default=512, ge=64, le=2048)
     MATCH_THRESHOLD: float = Field(default=0.85, ge=0.0, le=1.0)
+    DEFAULT_MATCH_STRATEGY: str = "highest"
 
     # ── Storage ───────────────────────────────────────────────────────────────
     SIGNATURE_STORAGE_PATH: str = "storage/signatures"
@@ -93,6 +97,11 @@ class Settings(BaseSettings):
     # ── Image Preprocessing ───────────────────────────────────────────────────
     IMAGE_TARGET_WIDTH: int = 256
     IMAGE_TARGET_HEIGHT: int = 128
+    USE_BINARIZATION: bool = True
+    USE_CROPPING: bool = True
+    USE_CLAHE: bool = True
+    USE_ASPECT_RATIO_RESIZE: bool = True
+    CLAHE_CLIP_LIMIT: float = 2.0
     ALLOWED_IMAGE_EXTENSIONS: List[str] = [".png", ".jpg", ".jpeg", ".bmp", ".tiff"]
     MAX_FILE_SIZE_MB: int = 10
 

@@ -39,6 +39,7 @@ class MatchResult:
     best_sig_id: Optional[int]
     threshold_used: float
     all_scores: dict
+    match_strategy: str = "highest"
 
     @property
     def confidence(self) -> str:
@@ -96,6 +97,7 @@ class SignatureMatcher:
         query_embedding: np.ndarray,
         reference_embeddings: List[Tuple[int, np.ndarray]],
         user_id: int,
+        strategy: str = "highest",
     ) -> MatchResult:
         """
         Find the best matching reference signature for the query embedding.
@@ -124,21 +126,35 @@ class SignatureMatcher:
 
         try:
             all_scores = self._compute_all_scores(query_embedding, reference_embeddings)
-            best_sig_id = max(all_scores, key=all_scores.get)
-            best_score = all_scores[best_sig_id]
-            verdict = best_score >= self.threshold
+            
+            # 1. Select the representative score based on strategy
+            if strategy == "lowest":
+                best_sig_id = min(all_scores, key=all_scores.get)
+                score = all_scores[best_sig_id]
+            elif strategy == "average":
+                score = sum(all_scores.values()) / len(all_scores)
+                # For average, there isn't one "best" sig_id in a 1-to-1 sense, 
+                # but we'll return the one closest to the mean for logging.
+                best_sig_id = min(all_scores, key=lambda k: abs(all_scores[k] - score))
+            else:  # default to "highest"
+                best_sig_id = max(all_scores, key=all_scores.get)
+                score = all_scores[best_sig_id]
+
+            verdict = score >= self.threshold
 
             result = MatchResult(
-                score=best_score,
+                score=score,
                 verdict=verdict,
                 best_sig_id=best_sig_id,
                 threshold_used=self.threshold,
                 all_scores=all_scores,
+                match_strategy=strategy,
             )
 
             log.info(
                 f"Match complete | user_id={user_id} | "
-                f"score={best_score:.4f} | verdict={result.verdict} | "
+                f"strategy={strategy} | "
+                f"score={score:.4f} | verdict={result.verdict} | "
                 f"confidence={result.confidence}"
             )
             return result
@@ -183,6 +199,7 @@ class SignatureMatcher:
         query_embeddings: List[np.ndarray],
         reference_embeddings: List[Tuple[int, np.ndarray]],
         user_id: int,
+        strategy: str = "highest",
     ) -> MatchResult:
         """
         Majority-vote ensemble over multiple query embeddings (for video input).
@@ -207,12 +224,21 @@ class SignatureMatcher:
         )
 
         results = [
-            self.match(emb, reference_embeddings, user_id)
+            self.match(emb, reference_embeddings, user_id, strategy=strategy)
             for emb in query_embeddings
         ]
 
-        # Select the result with the highest score
-        best = max(results, key=lambda r: r.score)
+        # Select the representative result for the ensemble
+        if strategy == "lowest":
+            best = min(results, key=lambda r: r.score)
+        elif strategy == "average":
+            # For ensemble average, we take the mean of the means
+            avg_score = sum(r.score for r in results) / len(results)
+            # Pick the result closest to the ensemble mean
+            best = min(results, key=lambda r: abs(r.score - avg_score))
+            best.score = avg_score  # Override with true mean
+        else:
+            best = max(results, key=lambda r: r.score)
 
         votes_match = sum(1 for r in results if r.verdict)
         votes_nomatch = len(results) - votes_match
@@ -231,4 +257,5 @@ class SignatureMatcher:
             best_sig_id=best.best_sig_id,
             threshold_used=self.threshold,
             all_scores=best.all_scores,
+            match_strategy=strategy,
         )

@@ -1,0 +1,6 @@
+--- Raw Grayscale Test (No Binarize/Crop) ---
+Genuine Match (U10_1 vs U10_2): 0.990061
+Imposter (U10_1 vs U11_1)     : 0.616228
+Discrimination Delta          : 0.373833
+
+RESULT: RAW GRAYSCALE is much better!
