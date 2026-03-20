@@ -388,6 +388,4 @@ pytest tests/ --cov=backend --cov-report=html
 
 ---
 
-## License
-
-MIT License. See `LICENSE` for details.
+Note: This is a work in progress, and being done using Vibe Coding.
